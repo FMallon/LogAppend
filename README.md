@@ -2,7 +2,9 @@
 Bash Script to make Logging easier
 
 Usage: log <FLAG> <LOG_FILE>
+  
   Flag: 
+    
     [--append | -a] appends the output to the log file!
     [--begin | -b] begins the log file, applying a start date!
     [--backup] backs-up the log file!
