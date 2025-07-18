@@ -2,12 +2,12 @@
 
 # Piped Script to be used in conjunction with writing to log files, and cleaning up the data
 #
-#log --append 
+# by Finn Mallon 
 
 
 # Global Variables
-FLAG=$1
-LOG_FILE=$2
+FLAG="$1"
+LOG_FILE="$2"
 LOG_FILE_SANITIZED=$(echo $LOG_FILE | sed 's|.*/||')
 LOG_BACKUP_DIR="/log/Backups"
 LOG_BACKUP_FILE="$LOG_BACKUP_DIR/$LOG_FILE_SANITIZED.bk"
@@ -16,6 +16,7 @@ LOG_BACKUP_FILE="$LOG_BACKUP_DIR/$LOG_FILE_SANITIZED.bk"
 
 function beginLog(){
 
+    check_log_file_exists
 
     createSpace
 
@@ -30,6 +31,8 @@ function beginLog(){
 
 
 function endLog(){
+
+  check_log_file_exists
 
   createSpace
 
@@ -67,24 +70,24 @@ function drawLine(){
 
 function backupLog(){
 
+  check_log_file_exists
 
-  if [[ ! -d "$LOG_BACKUP_DIR" ]]; then
-    
-    createSpace
-    
+  if [ ! -d "$LOG_BACKUP_DIR" ]; then
+
     echo "Directory for backup logs doesn't exist.  Creating now!"
-    
     createSpace
-
-    echo "Backups are saved to $LOG_BACKUP_DIR!"
-    
-    createSpace
-
     sudo mkdir -p "$LOG_BACKUP_DIR"
 
   fi
 
+
   sudo cp -r "$LOG_FILE" "$LOG_BACKUP_FILE"
+
+  createSpace
+
+  echo "Backing up $LOG_FILE to $LOG_BACKUP_FILE now!"
+
+  createSpace
 
 }
 
@@ -93,10 +96,13 @@ function check_log_file_exists(){
 
 
 
-    if [ ! -f "$LOG_FILE" ]; then 
+    if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then 
 
+      createSpace
 
-      echo -e "\nError! Log File does not exist or was not specified!"
+      echo "Error! Log File not specified or doesn't exist!"
+
+      createSpace
 
       kill -SIGINT $$
 
@@ -111,6 +117,8 @@ function check_log_file_exists(){
 function appendToLog(){
 
 
+  check_log_file_exists
+
   createSpace
 
   sudo tee -a "$LOG_FILE"
@@ -120,6 +128,8 @@ function appendToLog(){
 
 
 function editLog(){
+
+  check_log_file_exists
 
   log_file_line_count=$(wc -l < $LOG_FILE)
     
@@ -153,6 +163,14 @@ function displayHelp(){
 }
 
 
+function logCommand(){
+
+
+  ~/Documents/MyShellScripts/log_command.sh
+
+
+}
+
 
 function error(){
 
@@ -165,8 +183,7 @@ function error(){
 
 function main(){
 
-  check_log_file_exists
-
+  
   case "$FLAG" in
 
     --backup) backupLog
@@ -179,6 +196,9 @@ function main(){
     ;;
   
     --append | -a) appendToLog
+    ;;
+    
+    --command | -c) logCommand
     ;;
     
     --edit) editLog
@@ -202,4 +222,4 @@ function init(){
 
 }
 
-init $@
+init "$@"
