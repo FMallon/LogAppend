@@ -12,19 +12,23 @@ LOG_FILE_SANITIZED=$(echo $LOG_FILE | sed 's|.*/||')
 LOG_BACKUP_DIR="/log/Backups"
 LOG_BACKUP_FILE="$LOG_BACKUP_DIR/$LOG_FILE_SANITIZED.bk"
 
+#Subshell kill -SIGINT $$ fix - adds true/false to temp file, takes from it if in subshell;
+SCRIPT_PID=$$
+###############################################
 
 
 function beginLog(){
 
     check_log_file_exists
 
-    createSpace
+    drawLine_log
+    createSpace_log
 
     echo "Log started: " | sudo tee -a "$LOG_FILE"
 
     timedatectl status | head -n 1 | sudo tee -a "$LOG_FILE"
 
-    createSpace
+    createSpace_log
 
 }
 
@@ -34,15 +38,17 @@ function endLog(){
 
   check_log_file_exists
 
-  createSpace
+  createSpace_log
+
+  createSpace_log
 
   echo "Log ended: " | sudo tee -a "$LOG_FILE"
 
   timedatectl status | head -n 1 | sudo tee -a "$LOG_FILE"
 
-  createSpace
+  createSpace_log
 
-  drawLine
+  drawLine_log
 
 }
 
@@ -51,9 +57,10 @@ function endLog(){
 function createSpace(){
 
 
-  echo "" | sudo tee -a "$LOG_FILE"
+  echo ""
 
-  echo "" | sudo tee -a "$LOG_FILE"
+  echo ""
+
 
 }
 
@@ -62,7 +69,28 @@ function createSpace(){
 function drawLine(){
 
 
-  echo "_____________________________________________________________________________________________________________________________________________________________________" | sudo tee -a "$LOG_FILE"
+
+  echo "_____________________________________________________________________________________________________________________________________________________________________"
+
+
+}
+
+
+
+function drawLine_log(){
+
+
+  drawLine | sudo tee -a "$LOG_FILE"
+
+
+}
+
+
+
+createSpace_log(){
+
+
+  createSpace | sudo tee -a "$LOG_FILE"
 
 }
 
@@ -96,32 +124,95 @@ function check_log_file_exists(){
 
 
 
-    if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then 
+  if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then 
 
-      createSpace
+    createSpace
 
-      echo "Error! Log File not specified or doesn't exist!"
+    echo "Error! Log File not specified or doesn't exist!"
 
-      createSpace
+    createSpace
+    
 
-      kill -SIGINT $$
-
-    fi
+    is_subshell
 
 
+  fi
 
 
 }
 
 
-function appendToLog(){
+function is_subshell(){
 
+
+
+  if (( BASH_SUBSHELL > 0 )); then
+
+
+    exit 0
+
+  else
+    
+    kill -SIGINT "$SCRIPT_PID"
+
+  fi
+
+
+}
+
+
+
+function is_piped(){
+
+
+  if [[ -p /dev/stdin ]]; then
+
+    piped_function="true"
+    
+  else
+    
+    piped_function="false"
+
+  fi
+
+
+}
+
+
+
+function break_script(){
+
+  # check if the --append function is being piped as necessary, or break!
+  is_piped 
+
+  if [ "$piped_function" = "false" ]; then
+
+    createSpace 
+
+    echo -e "Error: the Append flag [ -a || --append] must be piped in order to function!"
+
+    kill -SIGINT $SCRIPT_PID
+
+    createSpace
+
+  fi
 
   check_log_file_exists
 
-  createSpace
+}
+
+
+
+function appendToLog(){
+
+
+  break_script
+
+  createSpace_log
 
   sudo tee -a "$LOG_FILE"
+
+  createSpace
 
 
 }
@@ -145,9 +236,11 @@ function displayHelp(){
 
   drawLine
 
-  echo "Usage: log <FLAG> <LOG_FILE>"
   createSpace
-  echo "Flag:" 
+
+  echo "Usage: log <FLAG> <LOG_FILE>::::If using <FLAG> [-a | --append], the script must be piped!"
+  createSpace
+  echo "Flag:"
   echo "   [--append | -a] appends the output to the log file!"
   echo "   [--begin | -b] begins the log file, applying a start date!"
   echo "   [--backup] backs-up the log file!"
@@ -163,25 +256,21 @@ function displayHelp(){
 }
 
 
-function logCommand(){
-
-
-  ~/Documents/MyShellScripts/log_command.sh
-
-
-}
 
 
 function error(){
 
   createSpace
+  
   echo "Invalid argument! Use -h or --help to display argument menu." 
+  
   createSpace
 
 }
 
 
 function main(){
+
 
   
   case "$FLAG" in
@@ -196,9 +285,6 @@ function main(){
     ;;
   
     --append | -a) appendToLog
-    ;;
-    
-    --command | -c) logCommand
     ;;
     
     --edit) editLog
@@ -222,4 +308,8 @@ function init(){
 
 }
 
+
 init "$@"
+
+
+
