@@ -124,7 +124,7 @@ function check_log_file_exists(){
 
 
 
-  if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then 
+  if [ ! -f "$LOG_FILE" ]; then 
 
     createSpace
 
